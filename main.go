@@ -17,14 +17,14 @@ var (
 	roomsMutex sync.RWMutex
 )
 
-var USERS = map[int]User{}
+var USERS = map[int]*User{}
 
-var ROOMS = map[int]Room{}
+var ROOMS = map[int]*Room{}
 
 type Room struct {
 	id       int
 	password string
-	users    []User
+	users    []*User
 }
 
 type User struct {
@@ -34,11 +34,11 @@ type User struct {
 	conn         *net.TCPConn
 }
 
-func createRoom(roomInitiator User, password string) (Room, error) {
-	users := make([]User, 0, 5)
+func createRoom(roomInitiator *User, password string) (*Room, error) {
+	users := make([]*User, 0, 5)
 	users = append(users, roomInitiator)
 	roomId := int(time.Now().Unix())
-	newRoom := Room{
+	newRoom := &Room{
 		id:       roomId,
 		password: password,
 		users:    users,
@@ -49,13 +49,14 @@ func createRoom(roomInitiator User, password string) (Room, error) {
 	return newRoom, nil
 }
 
-func createUser(conn *net.TCPConn) (User, error) {
+func createUser(conn *net.TCPConn) (*User, error) {
 	nickname, err := getNickname(conn)
 	if err != nil {
-		return User{}, err
+		return &User{}, err
 	}
 	userId := int(time.Now().Unix())
-	newUser := User{
+	// escapes
+	newUser := &User{
 		id:           userId,
 		nickname:     nickname,
 		current_room: -1,
@@ -68,7 +69,7 @@ func createUser(conn *net.TCPConn) (User, error) {
 	return newUser, nil
 }
 
-func connectToRoom(user User, password string, roomId int) error {
+func connectToRoom(user *User, password string, roomId int) error {
 	roomsMutex.Lock()
 	defer roomsMutex.Unlock()
 	if user.current_room != -1 {
@@ -82,7 +83,6 @@ func connectToRoom(user User, password string, roomId int) error {
 		return errors.New("Incorrect password")
 	}
 	room.users = append(room.users, user)
-	ROOMS[roomId] = room
 	return nil
 }
 
@@ -146,12 +146,12 @@ func getPort() (string, error) {
 }
 
 // TODO: add errror handling
-func (r *Room) SendMessage(sender User, message string) {
+func (r *Room) SendMessage(sender *User, message string) {
 	for _, usr := range r.users {
 		if usr.id == sender.id {
 			continue
 		}
-		go func(usr User) {
+		go func(usr *User) {
 			_, err := usr.conn.Write([]byte(sender.nickname + ": " + message + "\n"))
 			if err != nil {
 				sender.conn.Write([]byte("Error occured when sending message"))
@@ -161,7 +161,7 @@ func (r *Room) SendMessage(sender User, message string) {
 }
 
 // TODO: add error handling
-func LeaveRoom(user User) error {
+func LeaveRoom(user *User) error {
 	if user.current_room == -1 {
 		return errors.New("You are not in any chat")
 	}
@@ -172,26 +172,24 @@ func LeaveRoom(user User) error {
 			user_ind = i
 		}
 	}
+	roomsMutex.Lock()
 	if len(room.users)-1 < user_ind {
 		room.users = append(room.users[:user_ind], room.users[user_ind+1:]...)
 	} else if len(room.users)-1 == user_ind {
 		room.users = room.users[:user_ind]
 	}
-	roomsMutex.Lock()
-	ROOMS[user.current_room] = room
 	roomsMutex.Unlock()
-	fmt.Println(room)
-	user.current_room = -1
 	usersMutex.Lock()
-	USERS[user.id] = user
+	user.current_room = -1
 	usersMutex.Unlock()
 	return nil
 }
 
-func userMessageHandler(user User) {
+func userMessageHandler(user *User) {
 	for {
 		defer user.conn.Close()
 		defer LeaveRoom(user)
+		defer delete(USERS, user.id)
 		msgBuffer := make([]byte, 1024)
 		user.conn.Write([]byte(">> "))
 		n, err := user.conn.Read(msgBuffer)
@@ -201,7 +199,6 @@ func userMessageHandler(user User) {
 			// idk what to do in that case
 		}
 		message := strings.TrimSuffix(string(msgBuffer[:n]), "\n")
-		fmt.Println(message)
 		switch message {
 		case "/new_room":
 			roomPassword, err := getPassword(user.conn)
@@ -213,11 +210,11 @@ func userMessageHandler(user User) {
 			if err != nil {
 				user.conn.Write([]byte(err.Error()))
 			}
-			user.current_room = newRoom.id
 			usersMutex.Lock()
-			USERS[user.id] = user
+			user.current_room = newRoom.id
 			usersMutex.Unlock()
 			user.conn.Write([]byte("Room (id: " + strconv.FormatInt(int64(newRoom.id), 10) + ") was successfully created\n"))
+			fmt.Println(user)
 		case "/exit":
 			user.conn.Write([]byte("Exit from app...\n"))
 			return
@@ -250,7 +247,7 @@ func userMessageHandler(user User) {
 			} else {
 				user.current_room = roomIdInt
 				usersMutex.Lock()
-				USERS[user.id] = user
+				// USERS[user.id] = user
 				usersMutex.Unlock()
 			}
 		case "/leave_room":
