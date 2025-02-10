@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Nikita213-hub/simple_tcp_chat/util"
+	"github.com/Nikita213-hub/simple_tcp_chat/server/util"
 )
 
 func CreateUser(conn *net.TCPConn, USERS *map[int]*User, usersMutex *sync.RWMutex) (*User, error) {

@@ -5,11 +5,11 @@ import (
 	"net"
 	"sync"
 
-	"github.com/Nikita213-hub/simple_tcp_chat/cmd/state"
-	"github.com/Nikita213-hub/simple_tcp_chat/handlers"
-	"github.com/Nikita213-hub/simple_tcp_chat/room"
-	"github.com/Nikita213-hub/simple_tcp_chat/user"
-	"github.com/Nikita213-hub/simple_tcp_chat/util"
+	"github.com/Nikita213-hub/simple_tcp_chat/server/cmd/state"
+	"github.com/Nikita213-hub/simple_tcp_chat/server/handlers"
+	"github.com/Nikita213-hub/simple_tcp_chat/server/room"
+	"github.com/Nikita213-hub/simple_tcp_chat/server/user"
+	"github.com/Nikita213-hub/simple_tcp_chat/server/util"
 )
 
 func main() {

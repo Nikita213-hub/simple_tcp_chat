@@ -1,7 +1,7 @@
 package room
 
 import (
-	"github.com/Nikita213-hub/simple_tcp_chat/user"
+	"github.com/Nikita213-hub/simple_tcp_chat/server/user"
 )
 
 type Room struct {

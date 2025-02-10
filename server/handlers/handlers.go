@@ -5,10 +5,13 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Nikita213-hub/simple_tcp_chat/cmd/state"
-	"github.com/Nikita213-hub/simple_tcp_chat/room"
-	"github.com/Nikita213-hub/simple_tcp_chat/user"
-	"github.com/Nikita213-hub/simple_tcp_chat/util"
+	"github.com/Nikita213-hub/simple_tcp_chat/server/cmd/state"
+
+	message "github.com/Nikita213-hub/simple_tcp_chat/pb"
+	"github.com/Nikita213-hub/simple_tcp_chat/server/room"
+	"github.com/Nikita213-hub/simple_tcp_chat/server/user"
+	"github.com/Nikita213-hub/simple_tcp_chat/server/util"
+	"google.golang.org/protobuf/proto"
 )
 
 // TODO: add state with USERS, ROOMS, and mutexes
@@ -31,6 +34,9 @@ func UserMessageHandler(user *user.User, state *state.GlobalState) {
 			return
 			// idk what to do in that case
 		}
+		msgp := message.ChatMessage{}
+		proto.Unmarshal(msgBuffer[:n], &msgp)
+		fmt.Println(msgp)
 		message := strings.TrimSuffix(string(msgBuffer[:n]), "\n")
 		switch message {
 		case "/new_room":

@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Nikita213-hub/simple_tcp_chat/user"
+	"github.com/Nikita213-hub/simple_tcp_chat/server/user"
 )
 
 func CreateRoom(roomInitiator *user.User, password string, ROOMS *map[int]*Room, roomsMutex *sync.RWMutex) (*Room, error) {

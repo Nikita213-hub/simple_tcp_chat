@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+package message;
+
+message ChatMessage {
+    int32 sender = 1;
+    string content = 2;
+}
