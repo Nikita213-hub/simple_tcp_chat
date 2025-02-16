@@ -1,6 +1,7 @@
 package room
 
 import (
+	"github.com/Nikita213-hub/simple_tcp_chat/server/messagesController"
 	"github.com/Nikita213-hub/simple_tcp_chat/server/user"
 )
 
@@ -10,15 +11,15 @@ type Room struct {
 	Users    []*user.User
 }
 
-func (r *Room) SendMessage(sender *user.User, message string) {
+func (r *Room) SendMessage(sender *user.User, messageContent string) {
 	for _, usr := range r.Users {
 		if usr.Id == sender.Id {
 			continue
 		}
 		go func(usr *user.User) {
-			_, err := usr.Conn.Write([]byte(sender.Nickname + ": " + message + "\n"))
+			err := messagesController.SendChatMessage(sender, usr, messageContent)
 			if err != nil {
-				sender.Conn.Write([]byte("Error occured when sending message"))
+				messagesController.SendErrorMessage(sender.Conn, err.Error())
 			}
 		}(usr)
 	}

@@ -1,0 +1,4 @@
+github.com/Nikita213-hub/chat_proto v0.0.0-20250214200958-f612ea44543f h1:r9xD54qMaUhkKqjb+ohMvbe8MkZVaZxm97K0TxRtwBs=
+github.com/Nikita213-hub/chat_proto v0.0.0-20250214200958-f612ea44543f/go.mod h1:G44ZcVIe4AYVzr2vFLCXeH/gzXNOkp1T2MXL7ERoEjI=
+google.golang.org/protobuf v1.36.5 h1:tPhr+woSbjfYvY6/GPufUoYizxw1cF/yFoxJ2fmpwlM=
+google.golang.org/protobuf v1.36.5/go.mod h1:9fA7Ob0pmnwhb644+1+CVWFRbNajQ6iRojtC/QF5bRE=

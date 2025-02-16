@@ -7,6 +7,7 @@ import (
 
 	"github.com/Nikita213-hub/simple_tcp_chat/server/cmd/state"
 	"github.com/Nikita213-hub/simple_tcp_chat/server/handlers"
+	"github.com/Nikita213-hub/simple_tcp_chat/server/messagesController"
 	"github.com/Nikita213-hub/simple_tcp_chat/server/room"
 	"github.com/Nikita213-hub/simple_tcp_chat/server/user"
 	"github.com/Nikita213-hub/simple_tcp_chat/server/util"
@@ -48,12 +49,20 @@ func main() {
 			fmt.Println(err)
 			return
 		}
-		conn.Write([]byte("Insert your nickname\n"))
-		newUser, err := user.CreateUser(conn, &s.USERS, s.UsersMx)
+		messagesController.SendNotificationMessage(conn, "Insert your nickname\n")
+		// conn.Write([]byte("Insert your nickname\n"))
+		nickname, err := messagesController.ProcessUserMessage(conn)
+		if err != nil {
+			messagesController.SendErrorMessage(conn, "error occured, leaving")
+			return
+		}
+		newUser, err := user.CreateUser(conn, &s.USERS, s.UsersMx, nickname)
 		if err != nil {
 			fmt.Println(err)
 		}
-		conn.Write([]byte("Hello, " + newUser.Nickname + "\n"))
+		messagesController.SendNotificationMessage(conn, "Hello, "+newUser.Nickname+"\n")
+		greating := "Hello, " + newUser.Nickname + "\n"
+		messagesController.SendNotificationMessage(conn, greating)
 		go handlers.UserMessageHandler(newUser, &s)
 	}
 }

@@ -5,15 +5,10 @@ import (
 	"net"
 	"sync"
 	"time"
-
-	"github.com/Nikita213-hub/simple_tcp_chat/server/util"
+	// "github.com/Nikita213-hub/simple_tcp_chat/server/util"
 )
 
-func CreateUser(conn *net.TCPConn, USERS *map[int]*User, usersMutex *sync.RWMutex) (*User, error) {
-	nickname, err := util.GetNickname(conn)
-	if err != nil {
-		return &User{}, err
-	}
+func CreateUser(conn *net.TCPConn, USERS *map[int]*User, usersMutex *sync.RWMutex, nickname string) (*User, error) {
 	userId := int(time.Now().Unix())
 	// escapes
 	newUser := &User{

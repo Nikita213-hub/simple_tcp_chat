@@ -2,16 +2,14 @@ package handlers
 
 import (
 	"fmt"
+	"io"
 	"strconv"
-	"strings"
 
 	"github.com/Nikita213-hub/simple_tcp_chat/server/cmd/state"
-
-	message "github.com/Nikita213-hub/simple_tcp_chat/pb"
 	"github.com/Nikita213-hub/simple_tcp_chat/server/room"
 	"github.com/Nikita213-hub/simple_tcp_chat/server/user"
-	"github.com/Nikita213-hub/simple_tcp_chat/server/util"
-	"google.golang.org/protobuf/proto"
+
+	"github.com/Nikita213-hub/simple_tcp_chat/server/messagesController"
 )
 
 // TODO: add state with USERS, ROOMS, and mutexes
@@ -26,24 +24,24 @@ func UserMessageHandler(user *user.User, state *state.GlobalState) {
 	defer room.LeaveRoom(user, &state.ROOMS, state.RoomsMx, state.UsersMx)
 	defer delete(state.USERS, user.Id)
 	for {
-		msgBuffer := make([]byte, 1024)
-		user.Conn.Write([]byte(">> "))
-		n, err := user.Conn.Read(msgBuffer)
+		message, err := messagesController.ProcessUserMessage(user.Conn)
 		if err != nil {
-			fmt.Println("AAAAAAAAAA")
-			return
-			// idk what to do in that case
+			if err == io.EOF {
+				fmt.Println("User has left")
+				return
+			}
+			fmt.Println(err.Error())
 		}
-		msgp := message.ChatMessage{}
-		proto.Unmarshal(msgBuffer[:n], &msgp)
-		fmt.Println(msgp)
-		message := strings.TrimSuffix(string(msgBuffer[:n]), "\n")
+		fmt.Println(message)
 		switch message {
 		case "/new_room":
-			roomPassword, err := util.GetPassword(user.Conn)
+			messagesController.SendNotificationMessage(user.Conn, "insert room password\n")
+			roomPassword, err := messagesController.ProcessUserMessage(user.Conn)
 			if err != nil {
-				fmt.Println(err)
-				return
+				messagesController.SendErrorMessage(user.Conn, "error occured while creating password\n")
+			}
+			if len(roomPassword) < 1 {
+				messagesController.SendErrorMessage(user.Conn, "insert at least 1 character\n")
 			}
 			newRoom, err := room.CreateRoom(user, roomPassword, &state.ROOMS, state.RoomsMx)
 			if err != nil {
@@ -52,37 +50,35 @@ func UserMessageHandler(user *user.User, state *state.GlobalState) {
 			state.UsersMx.Lock()
 			user.Current_room = newRoom.Id
 			state.UsersMx.Unlock()
-			user.Conn.Write([]byte("Room (id: " + strconv.FormatInt(int64(newRoom.Id), 10) + ") was successfully created\n"))
+			// user.Conn.Write([]byte("Room (id: " + strconv.FormatInt(int64(newRoom.Id), 10) + ") was successfully created\n"))
+			messagesController.SendNotificationMessage(user.Conn, "Room (id: "+strconv.FormatInt(int64(newRoom.Id), 10)+") was successfully created\n")
 			fmt.Println(user)
 		case "/exit":
-			user.Conn.Write([]byte("Exit from app...\n"))
+			messagesController.SendNotificationMessage(user.Conn, "Exit from app...\n")
 			return
+			// user.Conn.Write([]byte("Exit from app...\n"))
 		case "/connect":
 			//TODO: move that shit in a function
-			user.Conn.Write([]byte("Insert chat id:\n"))
-			msgBuffer := make([]byte, 16)
-			n, err := user.Conn.Read(msgBuffer)
+			// user.Conn.Write([]byte("Insert chat id:\n"))
+			messagesController.SendNotificationMessage(user.Conn, "Insert chat id:\n")
+			roomId, err := messagesController.ProcessUserMessage(user.Conn)
 			if err != nil {
-				fmt.Println(err)
-				return
+				messagesController.SendErrorMessage(user.Conn, err.Error())
 			}
-			roomId := strings.TrimSuffix(string(msgBuffer[:n]), "\n")
 			roomIdInt, err := strconv.Atoi(roomId)
 			if err != nil {
-				fmt.Println(err)
-				return
+				messagesController.SendErrorMessage(user.Conn, err.Error())
 			}
-			user.Conn.Write([]byte("Insert chat password:\n"))
-			pswdBuffer := make([]byte, 16)
-			n, err = user.Conn.Read(pswdBuffer)
+			// user.Conn.Write([]byte("Insert chat password:\n"))
+			messagesController.SendNotificationMessage(user.Conn, "Insert chat password:\n")
+			roomPswd, err := messagesController.ProcessUserMessage(user.Conn)
 			if err != nil {
-				fmt.Println(err)
-				return
+				messagesController.SendErrorMessage(user.Conn, err.Error())
 			}
-			roomPswd := strings.TrimSuffix(string(pswdBuffer[:n]), "\n")
 			err = room.ConnectToRoom(user, roomPswd, roomIdInt, &state.ROOMS, state.RoomsMx)
 			if err != nil {
-				user.Conn.Write([]byte(err.Error()))
+				messagesController.SendErrorMessage(user.Conn, err.Error())
+				// user.Conn.Write([]byte(err.Error()))
 			} else {
 				state.UsersMx.Lock()
 				user.Current_room = roomIdInt
@@ -93,10 +89,12 @@ func UserMessageHandler(user *user.User, state *state.GlobalState) {
 			if err != nil {
 				fmt.Println(err)
 			}
-			user.Conn.Write([]byte("You have leaved room"))
+			// user.Conn.Write([]byte("You have leaved room"))
+			messagesController.SendNotificationMessage(user.Conn, "You have leaved room\n")
 		default:
 			if user.Current_room == -1 {
-				user.Conn.Write([]byte("Incorrect command\n"))
+				// user.Conn.Write([]byte("Incorrect command\n"))
+				messagesController.SendErrorMessage(user.Conn, "Incorrect command\n")
 			} else {
 				r, ok := state.ROOMS[user.Current_room]
 				if !ok {
