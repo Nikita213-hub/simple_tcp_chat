@@ -43,6 +43,7 @@ func main() {
 		return
 	}
 	fmt.Println("Server is listening " + strAddr + " ...")
+	
 	for {
 		conn, err := server.AcceptTCP()
 		if err != nil {
